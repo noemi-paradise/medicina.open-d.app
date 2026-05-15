@@ -1,37 +1,37 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { compromisos, casos, firmas } from "@/lib/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, count } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
     const totalCompromisos = await db
-      .select({ count: sql<number>`count(*)` })
+      .select({ count: count() })
       .from(compromisos);
 
     const activosCompromisos = await db
-      .select({ count: sql<number>`count(*)` })
+      .select({ count: count() })
       .from(compromisos)
       .where(eq(compromisos.activo, true));
 
     const totalCasos = await db
-      .select({ count: sql<number>`count(*)` })
+      .select({ count: count() })
       .from(casos);
 
     const casosResueltos = await db
-      .select({ count: sql<number>`count(*)` })
+      .select({ count: count() })
       .from(casos)
       .where(eq(casos.estado, "resuelto"));
 
     const cartasGeneradas = await db
-      .select({ count: sql<number>`count(*)` })
+      .select({ count: count() })
       .from(casos)
       .where(sql`${casos.cartaGeneradaEn} IS NOT NULL`);
 
     const totalFirmas = await db
-      .select({ count: sql<number>`count(*)` })
+      .select({ count: count() })
       .from(firmas);
 
     return NextResponse.json({
@@ -45,7 +45,6 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Error en GET /api/stats (DB no conectada?):", error);
-    // Fallback para desarrollo sin DB
     return NextResponse.json({
       compromisos_total: 0,
       compromisos_activos: 0,
