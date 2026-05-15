@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { compromisos, casos, firmas } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const totalCompromisos = await db
