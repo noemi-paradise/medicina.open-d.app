@@ -1,8 +1,16 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://medicina.open-d.app";
 const FROM_EMAIL = "medicina <no-reply@open-d.app>";
+
+let resendInstance: Resend | null = null;
+
+function getResend() {
+  if (!resendInstance && process.env.RESEND_API_KEY) {
+    resendInstance = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendInstance;
+}
 
 export async function sendEmail({
   to,
@@ -13,7 +21,8 @@ export async function sendEmail({
   subject: string;
   html: string;
 }) {
-  if (!process.env.RESEND_API_KEY) {
+  const resend = getResend();
+  if (!resend) {
     console.warn("RESEND_API_KEY not set, email not sent:", subject);
     return { id: "mock-email-id" };
   }
