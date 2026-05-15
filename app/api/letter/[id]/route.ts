@@ -44,7 +44,7 @@ export async function GET(
       .from(firmas)
       .where(eq(firmas.casoId, casoId));
 
-    const nombresFirmas = firmasResult.map((f) => f.nombreEnCarta);
+    const nombresFirmas = firmasResult.map((f: { nombreEnCarta: string }) => f.nombreEnCarta);
 
     const pdfBytes = await generateLetter({
       id: caso.id,
