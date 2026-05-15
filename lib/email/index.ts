@@ -62,8 +62,6 @@ export function getWelcomeEmailHtml(nombre: string): string {
       <h2 style="color: #0066FF;">¡Bienvenido/a, ${nombre}!</h2>
       <p>Ya formas parte de la lista de apoyo de <strong>medicina.open-d.app</strong>.</p>
       <p>Cuando alguien necesite firmas para reclamar su medicina, recibirás un email con un solo clic para firmar.</p>
-      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
-      <p style="color: #666; font-size: 14px;">¿Necesitas ayuda? Responde a este email.</p>
       <p style="color: #999; font-size: 12px; margin-top: 24px;">medicina.open-d.app</p>
     </div>
   `;
