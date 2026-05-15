@@ -41,8 +41,7 @@ const TIPOS_AUTORIDAD = [
 
 async function verifyRecaptcha(token: string): Promise<boolean> {
   if (!process.env.RECAPTCHA_SECRET_KEY) {
-    // Only skip in development; in production, require reCAPTCHA
-    return process.env.NODE_ENV === "development";
+    return true; // Skip if not configured
   }
   try {
     const res = await fetch(
