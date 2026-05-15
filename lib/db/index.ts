@@ -17,10 +17,10 @@ function getDb() {
 }
 
 // Proxy que inicializa el db lazy al primer uso
-export const db = new Proxy({} as ReturnType<typeof drizzle<typeof schema>>, {
+export const db = new Proxy({} as any, {
   get(_, prop) {
     const instance = getDb();
-    const value = (instance as Record<string, unknown>)[prop as string];
+    const value = (instance as any)[prop];
     if (typeof value === "function") {
       return value.bind(instance);
     }
