@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://medicina.open-d.app";
-const FROM_EMAIL = "medicina <no-reply@open-d.app>";
+const FROM_EMAIL = process.env.FROM_EMAIL || "onboarding@resend.dev";
 
 let resendInstance: Resend | null = null;
 
