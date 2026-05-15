@@ -42,6 +42,25 @@ export async function POST(request: NextRequest) {
 
     const emailHash = hashEmail(emailLimpio);
 
+    // Rate limit: 1 pledge por email cada 24h
+    const veinticuatroHorasAtras = new Date();
+    veinticuatroHorasAtras.setHours(veinticuatroHorasAtras.getHours() - 24);
+
+    const reciente = await db
+      .select()
+      .from(compromisos)
+      .where(
+        eq(compromisos.emailHash, emailHash)
+      )
+      .limit(1);
+
+    if (reciente.length > 0 && reciente[0].comprometidoEn > veinticuatroHorasAtras) {
+      return NextResponse.json(
+        { mensaje: "Ya estás en la lista. Gracias." },
+        { status: 200 }
+      );
+    }
+
     // Check if already exists
     const existentes = await db
       .select()

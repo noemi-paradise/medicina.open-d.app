@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://medicina.open-d.app";
-const FROM_EMAIL = process.env.FROM_EMAIL || "onboarding@resend.dev";
+const FROM_EMAIL = "medicina@open-d.app";
 
 let resendInstance: Resend | null = null;
 
@@ -10,6 +10,13 @@ function getResend() {
     resendInstance = new Resend(process.env.RESEND_API_KEY);
   }
   return resendInstance;
+}
+
+function isValidEmailForSending(email: string): boolean {
+  // Strict validation to prevent header injection
+  return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email) &&
+    !/[\r\n,;]/.test(email) &&
+    email.length <= 254;
 }
 
 export async function sendEmail({
@@ -21,6 +28,10 @@ export async function sendEmail({
   subject: string;
   html: string;
 }) {
+  if (!isValidEmailForSending(to)) {
+    console.warn("Invalid email address, not sent:", to);
+    return { id: "invalid-email" };
+  }
   const resend = getResend();
   if (!resend) {
     console.warn("RESEND_API_KEY not set, email not sent:", subject);

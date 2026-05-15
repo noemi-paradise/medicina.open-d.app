@@ -13,25 +13,43 @@ export function generateSignToken(casoId: number, compromisoId: number): string 
   if (!secret) {
     throw new Error("CRON_SECRET no está configurado. Define esta variable de entorno.");
   }
-  return crypto
+  const hmac = crypto
     .createHmac("sha256", secret)
     .update(`${casoId}:${compromisoId}`)
-    .digest("hex");
+    .digest("hex")
+    .slice(0, 16);
+  const payload = Buffer.from(`${casoId}:${compromisoId}`).toString("base64url");
+  return `${payload}.${hmac}`;
 }
 
-export function verifySignToken(
-  token: string,
-  casoId: number,
-  compromisoId: number
-): boolean {
-  const expected = generateSignToken(casoId, compromisoId);
+export function verifySignToken(token: string): { casoId: number; compromisoId: number } | null {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
+    throw new Error("CRON_SECRET no está configurado. Define esta variable de entorno.");
+  }
+  const parts = token.split(".");
+  if (parts.length !== 2) return null;
+
   try {
-    return crypto.timingSafeEqual(
-      Buffer.from(token, "hex"),
-      Buffer.from(expected, "hex")
-    );
+    const decoded = Buffer.from(parts[0], "base64url").toString("utf-8");
+    const [casoIdStr, compromisoIdStr] = decoded.split(":");
+    const casoId = parseInt(casoIdStr, 10);
+    const compromisoId = parseInt(compromisoIdStr, 10);
+    if (isNaN(casoId) || isNaN(compromisoId)) return null;
+
+    const expected = crypto
+      .createHmac("sha256", secret)
+      .update(`${casoId}:${compromisoId}`)
+      .digest("hex")
+      .slice(0, 16);
+
+    if (!crypto.timingSafeEqual(Buffer.from(parts[1]), Buffer.from(expected))) {
+      return null;
+    }
+
+    return { casoId, compromisoId };
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -48,5 +66,8 @@ export function sanitizeName(name: string): string {
 }
 
 export function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  // RFC 5322 compliant basic check + length limit
+  return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email) &&
+    email.length <= 254 &&
+    !/[\r\n,;]/.test(email);
 }

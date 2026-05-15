@@ -41,7 +41,8 @@ const TIPOS_AUTORIDAD = [
 
 async function verifyRecaptcha(token: string): Promise<boolean> {
   if (!process.env.RECAPTCHA_SECRET_KEY) {
-    return true; // Skip if not configured
+    // Only skip in development; in production, require reCAPTCHA
+    return process.env.NODE_ENV === "development";
   }
   try {
     const res = await fetch(
@@ -196,8 +197,8 @@ export async function POST(request: NextRequest) {
         mensaje: "Tu caso está recogiendo firmas. Te avisaremos cuando esté listo.",
         caso_id: nuevoCaso.id,
         token_seguimiento: tokenSeguimiento,
-        url_publica: `${process.env.NEXT_PUBLIC_APP_URL}/caso/${nuevoCaso.id}`,
-        url_seguimiento: `${process.env.NEXT_PUBLIC_APP_URL}/caso/${nuevoCaso.id}?token=${tokenSeguimiento}`,
+        url_publica: `${process.env.NEXT_PUBLIC_APP_URL || ""}/caso/${nuevoCaso.id}`.replace("\n", ""),
+        url_seguimiento: `${process.env.NEXT_PUBLIC_APP_URL || ""}/caso/${nuevoCaso.id}?token=${tokenSeguimiento}`.replace("\n", ""),
       },
       { status: 201 }
     );

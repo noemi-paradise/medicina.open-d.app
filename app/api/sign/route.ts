@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { casos, compromisos, firmas } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { generateSignToken, getClientIp } from "@/lib/utils";
+import { verifySignToken, getClientIp } from "@/lib/utils";
 import {
   sendEmail,
   getSignatureConfirmedEmailHtml,
@@ -20,41 +20,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Token requerido" }, { status: 400 });
     }
 
-    // Find all active pledges to verify token
-    const allCompromisos = await db
-      .select()
-      .from(compromisos)
-      .where(eq(compromisos.activo, true));
-
-    let matchedCompromisoId: number | null = null;
-    let matchedCasoId: number | null = null;
-
-    for (const comp of allCompromisos) {
-      // We need to find which caso this token is for
-      const allCasos = await db.select().from(casos);
-      for (const c of allCasos) {
-        const expected = generateSignToken(c.id, comp.id);
-        if (expected === signToken) {
-          matchedCompromisoId = comp.id;
-          matchedCasoId = c.id;
-          break;
-        }
-      }
-      if (matchedCasoId) break;
-    }
-
-    if (!matchedCasoId || !matchedCompromisoId) {
+    // Decode token directly (no brute force)
+    const decoded = verifySignToken(signToken);
+    if (!decoded) {
       return NextResponse.json(
         { error: "Token inválido" },
         { status: 400 }
       );
     }
 
+    const { casoId, compromisoId } = decoded;
+
     // Verify the case exists and is collecting
     const casoResult = await db
       .select()
       .from(casos)
-      .where(eq(casos.id, matchedCasoId))
+      .where(eq(casos.id, casoId))
       .limit(1);
 
     if (casoResult.length === 0) {
@@ -74,7 +55,7 @@ export async function GET(request: NextRequest) {
     const compResult = await db
       .select()
       .from(compromisos)
-      .where(eq(compromisos.id, matchedCompromisoId))
+      .where(eq(compromisos.id, compromisoId))
       .limit(1);
 
     if (compResult.length === 0 || !compResult[0].confirmado) {
@@ -87,7 +68,6 @@ export async function GET(request: NextRequest) {
     const compromiso = compResult[0];
 
     if (omit === "true") {
-      // User wants to skip this case - we just acknowledge it
       return NextResponse.json(
         { mensaje: "Has omitido este caso. No recibirás más recordatorios." },
         { status: 200 }
@@ -100,8 +80,8 @@ export async function GET(request: NextRequest) {
       .from(firmas)
       .where(
         and(
-          eq(firmas.casoId, matchedCasoId),
-          eq(firmas.compromisoId, matchedCompromisoId)
+          eq(firmas.casoId, casoId),
+          eq(firmas.compromisoId, compromisoId)
         )
       )
       .limit(1);
@@ -125,8 +105,8 @@ export async function GET(request: NextRequest) {
 
     // Insert signature
     await db.insert(firmas).values({
-      casoId: matchedCasoId,
-      compromisoId: matchedCompromisoId,
+      casoId,
+      compromisoId,
       nombreEnCarta: compromiso.nombre,
       ip,
       token: signToken,
@@ -137,7 +117,7 @@ export async function GET(request: NextRequest) {
     await db
       .update(casos)
       .set({ firmasCount: newCount })
-      .where(eq(casos.id, matchedCasoId));
+      .where(eq(casos.id, casoId));
 
     // Send confirmation to signer
     await sendEmail({
@@ -170,7 +150,7 @@ export async function GET(request: NextRequest) {
       await db
         .update(casos)
         .set({ estado: "listo" })
-        .where(eq(casos.id, matchedCasoId));
+        .where(eq(casos.id, casoId));
 
       await sendEmail({
         to: caso.solicitanteEmail,
