@@ -17,6 +17,7 @@ function getDb() {
 }
 
 // Proxy que inicializa el db lazy al primer uso
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export const db = new Proxy({} as any, {
   get(_, prop) {
     const instance = getDb();
@@ -27,3 +28,4 @@ export const db = new Proxy({} as any, {
     return value;
   },
 });
+/* eslint-enable @typescript-eslint/no-explicit-any */
